@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Análise de Vigas — Esforços, Tensões e Deformações</title>
+<meta name="description" content="Ferramenta educacional gratuita para calcular reações de apoio, esforços internos (N, V, M), tensões, tensões principais e linha elástica de vigas isostáticas.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='4' y='13' width='24' height='6' fill='%23E7E3DB' stroke='%231C1B19' stroke-width='1.5'/%3E%3Cpolygon points='4,25 9,19 9,25' fill='none' stroke='%231C1B19' stroke-width='1.3'/%3E%3Cpolygon points='23,25 28,19 28,25' fill='none' stroke='%231C1B19' stroke-width='1.3'/%3E%3Cline x1='16' y1='5' x2='16' y2='13' stroke='%23A6431C' stroke-width='2'/%3E%3Cpolygon points='16,13 13,7 19,7' fill='%23A6431C'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1C1B19; --ink-dim:#726F68; --ink-faint:#8C8880;
+  --paper:#FFFFFF; --page:#F3F1EC; --border:#E1DDD4; --border-soft:#EDEAE3;
+  --accent:#A6431C; --accent-soft:#C97A4F; --danger:#8B3A3A;
+  --font-body:'IBM Plex Sans',sans-serif; --font-mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box;}
+button, select, summary, .help-btn, .field input{ transition:background-color .15s ease, color .15s ease, border-color .15s ease; }
+details > .sec-body{ animation:fadeIn .15s ease; }
+@keyframes fadeIn{ from{ opacity:0; } to{ opacity:1; } }
+:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+.field input:focus-visible, .field select:focus-visible{ outline-offset:0; }
+html,body{margin:0;padding:0;}
+body{ background:var(--page); color:var(--ink); font-family:var(--font-body); min-height:100vh; }
+.app{ display:grid; grid-template-columns: 360px minmax(0,1fr); grid-template-rows: auto 1fr; grid-template-areas: "top top" "side main"; min-height:100vh; }
+.topbar{ grid-area:top; background:var(--paper); border-bottom:1px solid var(--border); padding:14px 24px; display:flex; align-items:baseline; gap:14px; }
+.title-block{ display:flex; flex-direction:column; gap:2px; }
+.topbar h1{ font-family:var(--font-body); font-size:20px; font-weight:700; margin:0; }
+.credit{ font-family:var(--font-mono); font-size:10.5px; color:var(--ink-dim); }
+.topbar .tag{ font-family:var(--font-mono); font-size:11px; color:var(--accent); border:1px solid var(--accent); padding:2px 8px; border-radius:0; }
+.topbar .sub{ font-family:var(--font-mono); font-size:12px; color:var(--ink-dim); margin-left:auto; }
+.sidebar{ grid-area:side; background:var(--paper); color:var(--ink); border-right:1px solid #E1DDD4; padding:14px; }
+.workspace{ grid-area:main; padding:18px 22px; display:flex; flex-direction:column; gap:16px; }
+details.section{ background:none; border:none; border-top:1px solid #E1DDD4; margin-bottom:0; overflow:hidden; }
+details.section:last-of-type{ border-bottom:1px solid #E1DDD4; }
+details.section[open] summary{ border-bottom:none; }
+summary{ cursor:pointer; list-style:none; padding:12px 4px; font-family:var(--font-body); font-weight:600; font-size:13.5px; display:flex; align-items:center; gap:8px; color:var(--ink); }
+summary:hover{ color:var(--accent); }
+summary::-webkit-details-marker{ display:none; }
+summary .n{ font-family:var(--font-mono); font-size:12px; font-weight:600; color:var(--ink-dim); background:none; width:auto; height:auto; display:inline; }
+summary .n::after{ content:'.'; }
+.sec-body{ padding:0 4px 16px; }
+.sec-body p{ margin:0 0 8px 0; }
+.field{ margin-bottom:10px; }
+.field label{ display:flex; align-items:center; gap:5px; font-size:11.5px; color:var(--ink-dim); margin-bottom:3px; font-family:var(--font-body); }
+.field input[type=number], .field select{ width:100%; font-family:var(--font-mono); font-size:13px; padding:6px 8px; border:1px solid #D6D1C7; border-radius:0; background:#FFFFFF; color:var(--ink); }
+.field input:focus, .field select:focus{ outline:2px solid var(--ink); outline-offset:0; border-color:var(--ink); }
+.row2{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:8px; }
+.row3{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr); gap:8px; }
+.radio-group{ display:flex; gap:14px; margin-top:4px; }
+.radio-group label{ display:flex; align-items:center; gap:5px; font-size:12.5px; color:var(--ink); }
+.item-card{ background:#FAF9F6; border:1px solid #E1DDD4; border-radius:0; padding:8px; margin-bottom:8px; position:relative; }
+.item-card .del{ position:absolute; top:6px; right:6px; background:none; border:none; color:var(--danger); cursor:pointer; font-size:15px; line-height:1; padding:2px 4px; font-family:var(--font-mono); }
+.add-btn{ width:100%; background:var(--accent); color:#fff; border:none; border-radius:0; padding:8px; font-family:var(--font-body); font-weight:600; font-size:12.5px; cursor:pointer; margin-top:4px; }
+.add-btn:hover{ background:#8A3716; }
+.btn-row{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:8px; margin-bottom:12px; }
+.example-btn{ background:none; border:1px dashed var(--ink); color:var(--ink); border-radius:0; padding:7px; font-family:var(--font-body); font-size:12px; cursor:pointer; }
+.clear-btn{ background:none; border:1px dashed var(--danger); color:var(--danger); border-radius:0; padding:7px; font-family:var(--font-body); font-size:12px; cursor:pointer; }
+.help-btn{ width:14px; height:14px; min-width:14px; border-radius:50%; background:none; color:var(--ink-faint); border:1px solid var(--ink-faint); font-size:9px; line-height:12px; text-align:center; padding:0; cursor:pointer; font-family:var(--font-mono); flex-shrink:0; }
+.help-btn:hover{ color:var(--accent); border-color:var(--accent); }
+.help-popover{ position:fixed; max-width:260px; background:#2B2925; color:#F5F3EE; border:1px solid var(--ink); border-radius:0; padding:10px 12px; font-size:12px; line-height:1.45; font-family:var(--font-body); box-shadow:0 6px 18px rgba(0,0,0,0.35); z-index:999; display:none; }
+.help-popover.show{ display:block; }
+.conv-section summary{ font-style:italic; }
+.warnings-panel{ display:none; flex-direction:column; gap:6px; }
+.warnings-panel.show{ display:flex; }
+.warning-item{ font-size:12.5px; background:#F6E3D3; border:1px solid var(--accent); color:#7A3E14; border-radius:0; padding:8px 12px; font-family:var(--font-body); }
+.toolbar{ display:flex; gap:10px; }
+.tool-btn{ background:var(--border); color:var(--ink); border:1px solid var(--border); border-radius:0; padding:8px 14px; font-family:var(--font-body); font-weight:600; font-size:12.5px; cursor:pointer; }
+.tool-btn:hover{ background:var(--border); }
+.canvas-card{ background:var(--paper); border:1.5px solid var(--ink); border-radius:0; padding:8px; }
+.canvas-card svg{ width:100%; height:auto; display:block; }
+.diagrams-row{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
+.diagram-card{ background:var(--paper); border-top:2px solid var(--border); padding:10px 4px; }
+.diagram-card h3{ font-family:var(--font-body); font-size:12px; font-weight:600; margin:0 0 6px 0; color:var(--ink-dim); text-transform:uppercase; }
+.diagram-card svg{ width:100%; height:auto; display:block; }
+.results-row{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
+.result-card{ background:var(--paper); border-top:2px solid var(--border); padding:12px 4px; }
+.result-card h3{ font-family:var(--font-body); font-size:12.5px; font-weight:600; margin:0 0 8px 0; color:var(--ink-dim); text-transform:uppercase; }
+.kv{ display:flex; justify-content:space-between; font-family:var(--font-mono); font-size:12.5px; padding:3px 0; border-bottom:1px dashed var(--border);}
+.kv:last-child{ border-bottom:none; }
+.kv .k{ color:var(--ink-dim); }
+.kv .v{ color:var(--accent); font-weight:600; }
+.kv .v.blue{ color:var(--ink); }
+.kv .v.green{ color:var(--ink); }
+.mohr-card svg{ width:100%; height:auto; display:block; }
+.calc-section{ background:var(--paper); border:1px solid var(--border); border-radius:0; overflow:hidden; }
+.calc-section summary{ padding:14px 16px; font-family:var(--font-body); font-weight:600; font-size:14px; color:var(--ink); cursor:pointer; list-style:none; }
+.calc-section summary::-webkit-details-marker{ display:none; }
+.calc-section[open] summary{ border-bottom:1px solid var(--border); }
+.calc-body{ padding:16px 18px; display:flex; flex-direction:column; gap:18px; }
+.calc-step-title{ font-family:var(--font-body); font-weight:600; font-size:13.5px; color:var(--accent); border-bottom:1px solid var(--border); padding-bottom:6px; }
+.calc-block{ margin-left:4px; }
+.calc-desc{ font-family:var(--font-body); font-size:12.5px; color:var(--ink-dim); margin:8px 0 3px 0; }
+.calc-formula{ font-family:var(--font-mono); font-size:12.5px; color:var(--ink); background:#EDEAE3; border-radius:0; padding:6px 10px; margin-bottom:2px; overflow-x:auto; white-space:nowrap; }
+.calc-sub{ font-family:var(--font-mono); font-size:12px; color:var(--ink-dim); padding:2px 10px; overflow-x:auto; white-space:nowrap; }
+.calc-result{ font-family:var(--font-mono); font-size:12.5px; color:var(--ink); font-weight:600; padding:4px 10px 0 10px; }
+.calc-item-list{ font-family:var(--font-mono); font-size:11.5px; color:var(--ink-dim); padding:2px 10px; }
+@media (max-width:920px){
+  .app{ grid-template-columns:minmax(0,1fr); grid-template-areas:"top" "side" "main"; }
+  .sidebar, .workspace{ max-height:none; }
+  .diagrams-row, .results-row{ grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+}
+@media print{
+  .sidebar, .toolbar{ display:none !important; }
+  .app{ grid-template-columns:minmax(0,1fr); grid-template-areas:"top" "main"; }
+  .topbar .sub{ display:none; }
+  .canvas-card{ break-inside:avoid; }
+  .diagram-card, .result-card{ break-inside:avoid; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="title-block">
+      <h1>Análise de Vigas</h1>
+      <span class="credit">Criado por Maik dos Anjos · v1.0</span>
+    </div>
+    <span class="tag">N · V · M · σ · ε</span>
+    <span class="sub">esforços internos · tensões · deformações principais</span>
+  </div>
+
+  <div class="sidebar">
+    <div class="btn-row">
+      <button class="example-btn" id="btnExemplo">Carregar exemplo</button>
+      <button class="clear-btn" id="btnLimpar">Limpar tudo</button>
+    </div>
+
+    <details class="section conv-section">
+      <summary>Convenções e ajuda</summary>
+      <div class="sec-body">
+        <p><strong>Eixos:</strong> x ao longo da viga, da esquerda para a direita. y transversal, positivo para cima, medido a partir da linha neutra da seção.</p>
+        <p><strong>Ângulo de forças:</strong> a partir do eixo x positivo, sentido anti-horário (90°=cima, -90°=baixo, 0°=tração p/ direita).</p>
+        <p><strong>Momentos:</strong> positivo no sentido anti-horário.</p>
+        <p><strong>Convenção de esforços:</strong> M(x) positivo tenciona as fibras inferiores. Tensão normal: σ = N/A − M·y/I.</p>
+        <p><strong>Simplificação:</strong> teoria clássica de vigas assume σy = 0.</p>
+        <p>Clique nos ícones <button type="button" class="help-btn" style="display:inline-flex;align-items:center;justify-content:center;">?</button> ao lado de cada campo para saber o que ele significa.</p>
+      </div>
+    </details>
+
+    <details class="section" open>
+      <summary><span class="n">1</span> Estrutura e apoios</summary>
+      <div class="sec-body">
+        <div class="field">
+          <label>Número de apoios <button type="button" class="help-btn" data-help="numApoios">?</button></label>
+          <select id="numApoios">
+            <option value="1">1 apoio (engaste / balanço simples)</option>
+            <option value="2" selected>2 apoios</option>
+          </select>
+        </div>
+        <div id="apoiosFields"></div>
+        <div class="warning" id="apoioWarning" style="display:none;"></div>
+      </div>
+    </details>
+
+    <details class="section">
+      <summary><span class="n">2</span> Seção transversal</summary>
+      <div class="sec-body">
+        <div class="field">
+          <label>Forma <button type="button" class="help-btn" data-help="sectionType">?</button></label>
+          <select id="sectionType">
+            <option value="retangular">Retangular</option>
+            <option value="circular">Circular</option>
+            <option value="manual">Manual (A, I, c)</option>
+          </select>
+        </div>
+        <div id="sectionFields"></div>
+      </div>
+    </details>
+
+    <details class="section">
+      <summary><span class="n">3</span> Material</summary>
+      <div class="sec-body">
+        <div class="row2">
+          <div class="field"><label>E (Pa) <button type="button" class="help-btn" data-help="matE">?</button></label><input type="number" id="matE" value="200e9"></div>
+          <div class="field"><label>Poisson (ν) <button type="button" class="help-btn" data-help="matV">?</button></label><input type="number" id="matV" value="0.3" step="0.01"></div>
+        </div>
+        <div class="field">
+          <label>Classificação <button type="button" class="help-btn" data-help="matClass">?</button></label>
+          <div class="radio-group">
+            <label><input type="radio" name="matClass" value="ductil" checked> Dúctil</label>
+            <label><input type="radio" name="matClass" value="fragil"> Frágil</label>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <details class="section" open>
+      <summary><span class="n">4</span> Forças concentradas</summary>
+      <div class="sec-body">
+        <div id="forcesList"></div>
+        <button class="add-btn" id="addForce">+ adicionar força</button>
+      </div>
+    </details>
+
+    <details class="section">
+      <summary><span class="n">5</span> Momentos concentrados</summary>
+      <div class="sec-body">
+        <div id="momentsList"></div>
+        <button class="add-btn" id="addMoment">+ adicionar momento</button>
+      </div>
+    </details>
+
+    <details class="section">
+      <summary><span class="n">6</span> Cargas distribuídas</summary>
+      <div class="sec-body">
+        <div id="distList"></div>
+        <button class="add-btn" id="addDist">+ adicionar carga distribuída</button>
+      </div>
+    </details>
+
+    <details class="section" open>
+      <summary><span class="n">7</span> Ponto de análise</summary>
+      <div class="sec-body">
+        <div class="field"><label>Posição x (m) <button type="button" class="help-btn" data-help="ptX">?</button></label><input type="number" id="ptX" value="2" step="0.1"></div>
+        <div class="field"><label>Posição y (m) <button type="button" class="help-btn" data-help="ptY">?</button></label><input type="number" id="ptY" value="0.05" step="0.01"></div>
+        <div class="field"><label>Direção de interesse θ (graus) <button type="button" class="help-btn" data-help="ptTheta">?</button></label><input type="number" id="ptTheta" value="0" step="1"></div>
+      </div>
+    </details>
+  </div>
+
+  <div class="workspace">
+    <div class="toolbar">
+      <button class="tool-btn" id="btnCSV">Exportar CSV</button>
+      <button class="tool-btn" id="btnPrint">Imprimir / Salvar PDF</button>
+    </div>
+
+    <div class="warnings-panel" id="warningsPanel"></div>
+
+    <div class="canvas-card">
+      <svg id="beamSvg" viewBox="0 0 1000 380" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#E7E3DB" stroke-width="1"/>
+          </pattern>
+          <marker id="arrowAmber" markerWidth="7" markerHeight="7" refX="5.5" refY="3.5" orient="auto">
+            <path d="M0,0 L7,3.5 L0,7 Z" fill="#A6431C"/>
+          </marker>
+        </defs>
+        <rect x="0" y="0" width="1000" height="380" fill="url(#grid)" opacity="0.5"/>
+        <g id="beamContent"></g>
+      </svg>
+    </div>
+
+    <div class="diagrams-row">
+      <div class="diagram-card"><h3>Normal N(x)</h3><svg id="diagN" viewBox="0 0 300 130"><g id="diagNContent"></g></svg></div>
+      <div class="diagram-card"><h3>Cortante V(x)</h3><svg id="diagV" viewBox="0 0 300 130"><g id="diagVContent"></g></svg></div>
+      <div class="diagram-card"><h3>Momento M(x)</h3><svg id="diagM" viewBox="0 0 300 130"><g id="diagMContent"></g></svg></div>
+      <div class="diagram-card"><h3>Linha elástica v(x)</h3><svg id="diagDefl" viewBox="0 0 300 130"><g id="diagDeflContent"></g></svg></div>
+    </div>
+
+    <div class="results-row">
+      <div class="result-card" id="reactionsCard"><h3>Reações de apoio</h3></div>
+      <div class="result-card" id="internalCard"><h3>No ponto x — esforços e tensões</h3></div>
+      <div class="result-card mohr-card">
+        <h3>Círculo de Mohr — tensões</h3>
+        <svg id="mohrSvg" viewBox="0 0 260 220"><g id="mohrContent"></g></svg>
+      </div>
+      <div class="result-card" id="strainCard"><h3>Deformações e principais</h3></div>
+    </div>
+
+    <details class="calc-section" open>
+      <summary>Memória de cálculo — passo a passo</summary>
+      <div class="calc-body" id="calcMemoria"></div>
+    </details>
+  </div>
+</div>
+
+<div class="help-popover" id="helpPopover"></div>
+
+<script>
+// =====================================================================
+// TEXTOS DE AJUDA
+// =====================================================================
+const HELP = {
+  numApoios:"Define quantos apoios sustentam a viga. Use 1 para uma viga em balanço (engastada numa extremidade, livre na outra). Use 2 para uma viga apoiada em dois pontos (pode ter trechos em balanço além dos apoios).",
+  engastePos:"Lado onde fica o engaste (apoio fixo que impede translação e rotação). A viga se estende para o lado oposto, terminando em uma extremidade livre.",
+  lenL1:"Comprimento total da viga, do engaste até a extremidade livre.",
+  tipoApoio1:"Tipo do primeiro apoio. Pino impede deslocamento vertical e horizontal. Rolete impede apenas o deslocamento vertical.",
+  tipoApoio2:"Tipo do segundo apoio. Pelo menos um dos dois apoios deve ser Pino, para a viga não deslizar horizontalmente.",
+  lenVao:"Distância entre o Apoio 1 e o Apoio 2 — o vão principal da viga.",
+  lenBal1:"Trecho da viga que se estende para antes do Apoio 1 (balanço/console). Use 0 se não houver balanço nesse lado.",
+  lenBal2:"Trecho da viga que se estende para depois do Apoio 2 (balanço/console). Use 0 se não houver balanço nesse lado.",
+  sectionType:"Forma da seção transversal da viga — define como área, momento de inércia e distribuição de tensões são calculados.",
+  secB:"Largura (base) da seção retangular.",
+  secH:"Altura da seção retangular (direção em que a tensão de flexão varia).",
+  secD:"Diâmetro da seção circular.",
+  secA:"Área da seção transversal, informada diretamente.",
+  secI:"Momento de inércia da seção em relação à linha neutra, informado diretamente.",
+  secC:"Distância da linha neutra até a fibra mais afastada da seção (topo ou base).",
+  matE:"Módulo de elasticidade (módulo de Young): mede a rigidez do material. Exemplos: aço ≈ 200e9 Pa, alumínio ≈ 70e9 Pa, concreto ≈ 25e9 Pa.",
+  matV:"Coeficiente de Poisson: razão entre deformação transversal e longitudinal. Normalmente entre 0 e 0.5 (aço ≈ 0.3).",
+  matClass:"Materiais dúcteis se deformam bastante antes de romper (ex.: aço). Materiais frágeis rompem com pouca deformação prévia (ex.: concreto, ferro fundido, vidro). Aqui é apenas uma classificação informativa.",
+  forceF:"Intensidade (módulo) da força concentrada, em Newtons.",
+  forceAngle:"Direção da força em graus, a partir do eixo x, sentido anti-horário. 90°=para cima, -90°=para baixo, 0°=tração p/ direita, 180°=compressão p/ esquerda.",
+  forceX:"Posição da força ao longo da viga, a partir da extremidade esquerda.",
+  momentM:"Valor do momento concentrado em N·m. Positivo = anti-horário, negativo = horário.",
+  momentX:"Posição do momento ao longo da viga.",
+  distQa:"Intensidade da carga no início do trecho (posição x inicial), em N/m. Se for igual à intensidade final, a carga é uniforme (retangular). Se for diferente (ou zero), a carga varia linearmente — trapezoidal, ou triangular quando um dos dois lados é zero.",
+  distQb:"Intensidade da carga no final do trecho (posição x final), em N/m.",
+  distSentido:"Sentido em que a carga distribuída age: para baixo (mais comum) ou para cima.",
+  distXa:"Posição onde a carga distribuída começa.",
+  distXb:"Posição onde a carga distribuída termina — deve ser maior que a posição inicial.",
+  ptX:"Posição ao longo da viga para obter N, V, M e as tensões. Deve estar entre 0 e o comprimento total.",
+  ptY:"Posição vertical dentro da seção, a partir da linha neutra (positivo para cima). Deve estar dentro da seção (entre -c e +c).",
+  ptTheta:"Ângulo (graus) da direção na qual você quer a tensão transformada e as tensões/deformações principais são sempre calculadas independente deste valor."
+};
+
+// =====================================================================
+// ESTADO
+// =====================================================================
+const state = {
+  structure:{ numSupports:2, engastePos:'esquerda', L1:4, tipoApoio1:'pino', tipoApoio2:'rolete', Lvao:4, Lbal1:0, Lbal2:0 },
+  sectionType:'retangular',
+  section:{ b:0.10, h:0.20, d:0.15, A:0.02, I:6.667e-5, c:0.1 },
+  material:{ E:200e9, v:0.3, cls:'ductil' },
+  forces:[ {F:5000, angle:-90, x:2} ],
+  moments:[],
+  distributed:[],
+  point:{ x:2, y:0.05, theta:0 }
+};
+let lastResults = null;
+
+// =====================================================================
+// HELPERS
+// =====================================================================
+const toRad = d => d*Math.PI/180;
+const cosd = d => Math.cos(toRad(d));
+const sind = d => Math.sin(toRad(d));
+const atan2d = (y,x) => Math.atan2(y,x)*180/Math.PI;
+function fmt(v, digits=4){
+  if(v===null || v===undefined || !isFinite(v)) return '—';
+  if(Math.abs(v) >= 1e5 || (Math.abs(v) < 1e-4 && v !== 0)) return v.toExponential(3);
+  return v.toFixed(digits);
+}
+// Formata um valor com prefixo de unidade automatico (k, M, G para grandes; m, µ para pequenos)
+// Ex.: fmtUnit(5000,'N') -> "5.000 kN"   |   fmtUnit(0.00028,'m') -> "0.280 mm"
+function fmtUnit(v, baseUnit, digits=2){
+  if(v===null || v===undefined || !isFinite(v)) return '—';
+  if(v===0) return '0 ' + baseUnit;
+  const abs = Math.abs(v);
+  const escalas = [ [1e9,'G'], [1e6,'M'], [1e3,'k'], [1,''], [1e-3,'m'], [1e-6,'µ'] ];
+  for(const [mult,sym] of escalas){
+    if(abs >= mult){ return (v/mult).toFixed(digits) + ' ' + sym + baseUnit; }
+  }
+  return v.toExponential(2) + ' ' + baseUnit;
+}
+function clampMin(v, min){ return Math.max(isFinite(v)?v:min, min); }
+function interpAt(xsArr, arr, xv){
+  const n = xsArr.length;
+  if(xv<=xsArr[0]) return arr[0];
+  if(xv>=xsArr[n-1]) return arr[n-1];
+  for(let i=0;i<n-1;i++){
+    if(xv>=xsArr[i] && xv<=xsArr[i+1]){
+      const t=(xv-xsArr[i])/(xsArr[i+1]-xsArr[i]);
+      return arr[i] + t*(arr[i+1]-arr[i]);
+    }
+  }
+  return arr[n-1];
+}
+
+// =====================================================================
+// AJUDA (POPOVER)
+// =====================================================================
+function showHelp(btn){
+  const key = btn.dataset.help;
+  const text = HELP[key] || 'Sem descrição disponível.';
+  const pop = document.getElementById('helpPopover');
+  pop.textContent = text;
+  pop.classList.add('show');
+  const r = btn.getBoundingClientRect();
+  let left = r.left;
+  if(left + 270 > window.innerWidth) left = window.innerWidth - 270;
+  pop.style.left = Math.max(8,left) + 'px';
+  pop.style.top = (r.bottom + 6) + 'px';
+}
+function hideHelp(){ document.getElementById('helpPopover').classList.remove('show'); }
+
+// =====================================================================
+// GEOMETRIA
+// =====================================================================
+function getGeometry(){
+  const s = state.structure;
+  if(s.numSupports===1){
+    const L = clampMin(s.L1, 0.01);
+    const xA = s.engastePos==='esquerda' ? 0 : L;
+    return { Ltotal:L, supports:[{type:'engaste', x:xA}] };
+  } else {
+    const Lvao = clampMin(s.Lvao,0.01), Lbal1=clampMin(s.Lbal1,0), Lbal2=clampMin(s.Lbal2,0);
+    const xA = Lbal1, xB = Lbal1+Lvao, Ltotal = Lbal1+Lvao+Lbal2;
+    return { Ltotal, supports:[{type:s.tipoApoio1,x:xA},{type:s.tipoApoio2,x:xB}] };
+  }
+}
+
+// =====================================================================
+// MOTOR DE CALCULO
+// =====================================================================
+function sectionProps(){
+  const t = state.sectionType, s = state.section;
+  if(t==='retangular'){ return { A:s.b*s.h, I:s.b*Math.pow(s.h,3)/12, c:s.h/2 }; }
+  if(t==='circular'){ const r=s.d/2; return { A:Math.PI*r*r, I:Math.PI*Math.pow(r,4)/4, c:r }; }
+  return {A:s.A, I:s.I, c:s.c};
+}
+function QandB(y){
+  const t = state.sectionType, s = state.section;
+  if(t==='retangular'){
+    if(Math.abs(y) > s.h/2) return {Q:0, b:s.b};
+    return { Q: s.b/2*((s.h*s.h)/4 - y*y), b:s.b };
+  }
+  if(t==='circular'){
+    const r = s.d/2;
+    if(Math.abs(y) > r) return {Q:0, b:0};
+    const Q = (2/3)*Math.pow(r*r-y*y,1.5);
+    const b = 2*Math.sqrt(Math.max(r*r-y*y,0));
+    return {Q,b};
+  }
+  return null;
+}
+
+function trapLoad(qa, qb, L){
+  // Carga distribuida linear entre qa (inicio) e qb (fim) ao longo do comprimento L.
+  // Cobre uniforme (qa=qb), triangular (qa=0 ou qb=0) e trapezoidal (caso geral) com uma unica formula.
+  const A = (qa+qb)/2*L; // resultante (area do trapezio)
+  const soma = qa+qb;
+  const xc = Math.abs(soma) > 1e-12 ? L*(qa+2*qb)/(3*soma) : L/2; // centroide, medido a partir do inicio do trecho
+  return {A, xc};
+}
+
+function computeReactions(geom){
+  let sumFx=0, sumFy=0;
+  state.forces.forEach(f=>{ sumFx += f.F*cosd(f.angle); sumFy += f.F*sind(f.angle); });
+  let sumFyDist=0;
+  state.distributed.forEach(d=>{
+    if(d.xb<=d.xa) return;
+    const qya = d.sentido===1 ? -d.qa : d.qa;
+    const qyb = d.sentido===1 ? -d.qb : d.qb;
+    const {A} = trapLoad(qya, qyb, d.xb-d.xa);
+    sumFyDist += A;
+  });
+
+  const reactionForces=[], reactionMoments=[];
+  let warning = '';
+
+  if(geom.supports.length===1){
+    const xA = geom.supports[0].x;
+    let sumMA=0;
+    state.forces.forEach(f=>{ sumMA += f.F*sind(f.angle)*(f.x-xA); });
+    state.moments.forEach(m=>{ sumMA += m.M; });
+    state.distributed.forEach(d=>{
+      if(d.xb<=d.xa) return;
+      const qya = d.sentido===1 ? -d.qa : d.qa, qyb = d.sentido===1 ? -d.qb : d.qb;
+      const {A, xc:xcOff} = trapLoad(qya, qyb, d.xb-d.xa);
+      sumMA += A*(d.xa+xcOff-xA);
+    });
+    reactionForces.push({Fx:-sumFx, Fy:-(sumFy+sumFyDist), x:xA});
+    reactionMoments.push({M:-sumMA, x:xA});
+  } else {
+    const xA = geom.supports[0].x, xB = geom.supports[1].x;
+    const tipoA = geom.supports[0].type, tipoB = geom.supports[1].type;
+    let sumMA=0;
+    state.forces.forEach(f=>{ sumMA += f.F*sind(f.angle)*(f.x-xA); });
+    state.moments.forEach(m=>{ sumMA += m.M; });
+    state.distributed.forEach(d=>{
+      if(d.xb<=d.xa) return;
+      const qya = d.sentido===1 ? -d.qa : d.qa, qyb = d.sentido===1 ? -d.qb : d.qb;
+      const {A, xc:xcOff} = trapLoad(qya, qyb, d.xb-d.xa);
+      sumMA += A*(d.xa+xcOff-xA);
+    });
+    const RBy = -sumMA/(xB-xA);
+    const RAy = -(sumFy+sumFyDist) - RBy;
+
+    let RAx=0, RBx=0;
+    if(tipoA==='pino' && tipoB!=='pino'){ RAx=-sumFx; }
+    else if(tipoB==='pino' && tipoA!=='pino'){ RBx=-sumFx; }
+    else if(tipoA==='pino' && tipoB==='pino'){ RAx=-sumFx; warning='Ambos os apoios são Pino: assumindo que apenas o Apoio 1 restringe o deslocamento horizontal (evita indeterminação estática).'; }
+    else { warning='Ambos os apoios são Rolete: não há restrição horizontal. Cuidado com cargas que possuam componente horizontal.'; }
+
+    reactionForces.push({Fx:RAx, Fy:RAy, x:xA});
+    reactionForces.push({Fx:RBx, Fy:RBy, x:xB});
+  }
+  return { reactionForces, reactionMoments, warning };
+}
+
+function internalForces(x, reactionForces, reactionMoments){
+  let N=0, V=0, M=0;
+  const allForces = state.forces.map(f=>({Fx:f.F*cosd(f.angle), Fy:f.F*sind(f.angle), x:f.x})).concat(reactionForces);
+  allForces.forEach(f=>{ if(f.x<=x){ N+=f.Fx; V+=f.Fy; M+=f.Fy*(x-f.x); } });
+  const allMoments = state.moments.map(m=>({M:m.M,x:m.x})).concat(reactionMoments);
+  allMoments.forEach(m=>{ if(m.x<=x) M+=m.M; });
+  state.distributed.forEach(d=>{
+    if(d.xb<=d.xa) return;
+    const qya = d.sentido===1 ? -d.qa : d.qa;
+    const qyb = d.sentido===1 ? -d.qb : d.qb;
+    if(x>d.xa){
+      const Lfull = d.xb-d.xa;
+      const xbClip = Math.min(x,d.xb);
+      const Lclip = xbClip-d.xa;
+      if(Lclip>0){
+        const qClip = qya + (qyb-qya)*(Lclip/Lfull); // intensidade no ponto de corte (interpolacao linear)
+        const {A, xc:xcOff} = trapLoad(qya, qClip, Lclip);
+        const xc = d.xa+xcOff;
+        V += A; M += A*(x-xc);
+      }
+    }
+  });
+  return {N,V,M};
+}
+
+function transformStress(sx,sy,txy,thetaDeg){
+  const th2=2*thetaDeg, med=(sx+sy)/2, dif=(sx-sy)/2;
+  return { sx2: med + dif*cosd(th2) + txy*sind(th2), sy2: med - dif*cosd(th2) - txy*sind(th2), txy2: -dif*sind(th2) + txy*cosd(th2) };
+}
+function principalStress(sx,sy,txy){
+  const med=(sx+sy)/2, R=Math.sqrt(Math.pow((sx-sy)/2,2)+txy*txy);
+  return { s1:med+R, s2:med-R, thetap:0.5*atan2d(2*txy, sx-sy), taumax:R };
+}
+function strains(sx,sy,txy,E,v){
+  const G = E/(2*(1+v));
+  return { ex:(sx-v*sy)/E, ey:(sy-v*sx)/E, gxy:txy/G, ez:-v/E*(sx+sy) };
+}
+function principalStrain(ex,ey,gxy){
+  const med=(ex+ey)/2, R=Math.sqrt(Math.pow((ex-ey)/2,2)+Math.pow(gxy/2,2));
+  return { e1:med+R, e2:med-R, thetape:0.5*atan2d(gxy, ex-ey) };
+}
+function computeDeflection(geom, xsArr, Ms, sec){
+  const EI = state.material.E * sec.I;
+  const n = xsArr.length;
+  if(!isFinite(EI) || EI===0) return xsArr.map(()=>0);
+  const kappa = Ms.map(m=> m/EI);
+  const theta0=[0], v0=[0];
+  for(let i=1;i<n;i++){ const dx=xsArr[i]-xsArr[i-1]; theta0.push(theta0[i-1] + (kappa[i-1]+kappa[i])/2*dx); }
+  for(let i=1;i<n;i++){ const dx=xsArr[i]-xsArr[i-1]; v0.push(v0[i-1] + (theta0[i-1]+theta0[i])/2*dx); }
+  let C1,C2;
+  if(geom.supports.length===1){
+    const xA = geom.supports[0].x;
+    const thA = interpAt(xsArr,theta0,xA), vA = interpAt(xsArr,v0,xA);
+    C1 = -thA; C2 = -vA - C1*xA;
+  } else {
+    const xA = geom.supports[0].x, xB = geom.supports[1].x;
+    const vA = interpAt(xsArr,v0,xA), vB = interpAt(xsArr,v0,xB);
+    C1 = -(vB-vA)/(xB-xA); C2 = -vA - C1*xA;
+  }
+  return xsArr.map((x,i)=> v0[i] + C1*x + C2);
+}
+
+// =====================================================================
+// RENDER: CAMPOS DE APOIOS
+// =====================================================================
+function renderApoiosFields(){
+  const el = document.getElementById('apoiosFields');
+  const s = state.structure;
+  if(s.numSupports===1){
+    el.innerHTML = `
+      <div class="field">
+        <label>Posição do engaste <button type="button" class="help-btn" data-help="engastePos">?</button></label>
+        <select id="engastePos">
+          <option value="esquerda" ${s.engastePos==='esquerda'?'selected':''}>Esquerda (viga se estende p/ direita)</option>
+          <option value="direita" ${s.engastePos==='direita'?'selected':''}>Direita (viga se estende p/ esquerda)</option>
+        </select>
+      </div>
+      <div class="field"><label>Comprimento do balanço L (m) <button type="button" class="help-btn" data-help="lenL1">?</button></label><input type="number" id="lenL1" value="${s.L1}" step="0.1" min="0.1"></div>`;
+    document.getElementById('engastePos').onchange = e=>{ s.engastePos=e.target.value; update(); };
+    document.getElementById('lenL1').oninput = e=>{ s.L1=clampMin(parseFloat(e.target.value),0.01); update(); };
+    document.getElementById('lenL1').onblur = e=>{ e.target.value = s.L1; };
+  } else {
+    el.innerHTML = `
+      <div class="row2">
+        <div class="field"><label>Tipo do Apoio 1 <button type="button" class="help-btn" data-help="tipoApoio1">?</button></label>
+          <select id="tipoApoio1">
+            <option value="pino" ${s.tipoApoio1==='pino'?'selected':''}>Pino</option>
+            <option value="rolete" ${s.tipoApoio1==='rolete'?'selected':''}>Rolete</option>
+          </select>
+        </div>
+        <div class="field"><label>Tipo do Apoio 2 <button type="button" class="help-btn" data-help="tipoApoio2">?</button></label>
+          <select id="tipoApoio2">
+            <option value="pino" ${s.tipoApoio2==='pino'?'selected':''}>Pino</option>
+            <option value="rolete" ${s.tipoApoio2==='rolete'?'selected':''}>Rolete</option>
+          </select>
+        </div>
+      </div>
+      <div class="field"><label>Comprimento do vão entre apoios (m) <button type="button" class="help-btn" data-help="lenVao">?</button></label><input type="number" id="lenVao" value="${s.Lvao}" step="0.1" min="0.1"></div>
+      <div class="row2">
+        <div class="field"><label>Balanço no Apoio 1 (m) <button type="button" class="help-btn" data-help="lenBal1">?</button></label><input type="number" id="lenBal1" value="${s.Lbal1}" step="0.1" min="0"></div>
+        <div class="field"><label>Balanço no Apoio 2 (m) <button type="button" class="help-btn" data-help="lenBal2">?</button></label><input type="number" id="lenBal2" value="${s.Lbal2}" step="0.1" min="0"></div>
+      </div>`;
+    document.getElementById('tipoApoio1').onchange = e=>{ s.tipoApoio1=e.target.value; update(); };
+    document.getElementById('tipoApoio2').onchange = e=>{ s.tipoApoio2=e.target.value; update(); };
+    document.getElementById('lenVao').oninput = e=>{ s.Lvao=clampMin(parseFloat(e.target.value),0.01); update(); };
+    document.getElementById('lenVao').onblur = e=>{ e.target.value = s.Lvao; };
+    document.getElementById('lenBal1').oninput = e=>{ s.Lbal1=clampMin(parseFloat(e.target.value),0); update(); };
+    document.getElementById('lenBal1').onblur = e=>{ e.target.value = s.Lbal1; };
+    document.getElementById('lenBal2').oninput = e=>{ s.Lbal2=clampMin(parseFloat(e.target.value),0); update(); };
+    document.getElementById('lenBal2').onblur = e=>{ e.target.value = s.Lbal2; };
+  }
+}
+document.getElementById('numApoios').onchange = e=>{ state.structure.numSupports=parseInt(e.target.value); renderApoiosFields(); update(); };
+
+// =====================================================================
+// RENDER: CAMPOS DA SECAO
+// =====================================================================
+function renderSectionFields(){
+  const el = document.getElementById('sectionFields');
+  const s = state.section;
+  if(state.sectionType==='retangular'){
+    el.innerHTML = `<div class="row2">
+      <div class="field"><label>Base b (m) <button type="button" class="help-btn" data-help="secB">?</button></label><input type="number" id="secB" value="${s.b}" step="0.01"></div>
+      <div class="field"><label>Altura h (m) <button type="button" class="help-btn" data-help="secH">?</button></label><input type="number" id="secH" value="${s.h}" step="0.01"></div>
+    </div>`;
+    document.getElementById('secB').oninput = e=>{ s.b=clampMin(parseFloat(e.target.value),0.0001); update(); };
+    document.getElementById('secB').onblur = e=>{ e.target.value = s.b; };
+    document.getElementById('secH').oninput = e=>{ s.h=clampMin(parseFloat(e.target.value),0.0001); update(); };
+    document.getElementById('secH').onblur = e=>{ e.target.value = s.h; };
+  } else if(state.sectionType==='circular'){
+    el.innerHTML = `<div class="field"><label>Diâmetro d (m) <button type="button" class="help-btn" data-help="secD">?</button></label><input type="number" id="secD" value="${s.d}" step="0.01"></div>`;
+    document.getElementById('secD').oninput = e=>{ s.d=clampMin(parseFloat(e.target.value),0.0001); update(); };
+    document.getElementById('secD').onblur = e=>{ e.target.value = s.d; };
+  } else {
+    el.innerHTML = `<div class="row3">
+      <div class="field"><label>A (m²) <button type="button" class="help-btn" data-help="secA">?</button></label><input type="number" id="secA" value="${s.A}" step="0.001"></div>
+      <div class="field"><label>I (m⁴) <button type="button" class="help-btn" data-help="secI">?</button></label><input type="number" id="secI" value="${s.I}" step="0.00001"></div>
+      <div class="field"><label>c (m) <button type="button" class="help-btn" data-help="secC">?</button></label><input type="number" id="secC" value="${s.c}" step="0.01"></div>
+    </div>`;
+    document.getElementById('secA').oninput = e=>{ s.A=clampMin(parseFloat(e.target.value),0.0001); update(); };
+    document.getElementById('secA').onblur = e=>{ e.target.value = s.A; };
+    document.getElementById('secI').oninput = e=>{ s.I=clampMin(parseFloat(e.target.value),1e-9); update(); };
+    document.getElementById('secI').onblur = e=>{ e.target.value = s.I; };
+    document.getElementById('secC').oninput = e=>{ s.c=clampMin(parseFloat(e.target.value),0.0001); update(); };
+    document.getElementById('secC').onblur = e=>{ e.target.value = s.c; };
+  }
+}
+
+// =====================================================================
+// RENDER: LISTAS DINAMICAS
+// =====================================================================
+function renderForcesList(){
+  const el = document.getElementById('forcesList');
+  el.innerHTML = state.forces.map((f,i)=>`
+    <div class="item-card" data-i="${i}">
+      <button class="del" data-list="forces" data-i="${i}">×</button>
+      <div class="row3">
+        <div class="field"><label>F (N) <button type="button" class="help-btn" data-help="forceF">?</button></label><input type="number" data-list="forces" data-i="${i}" data-field="F" value="${f.F}"></div>
+        <div class="field"><label>Ângulo (°) <button type="button" class="help-btn" data-help="forceAngle">?</button></label><input type="number" data-list="forces" data-i="${i}" data-field="angle" value="${f.angle}"></div>
+        <div class="field"><label>x (m) <button type="button" class="help-btn" data-help="forceX">?</button></label><input type="number" data-list="forces" data-i="${i}" data-field="x" value="${f.x}"></div>
+      </div>
+    </div>`).join('') || '<div style="font-size:12px;color:#726F68;">Nenhuma força adicionada.</div>';
+}
+function renderMomentsList(){
+  const el = document.getElementById('momentsList');
+  el.innerHTML = state.moments.map((m,i)=>`
+    <div class="item-card" data-i="${i}">
+      <button class="del" data-list="moments" data-i="${i}">×</button>
+      <div class="row2">
+        <div class="field"><label>M (N·m) <button type="button" class="help-btn" data-help="momentM">?</button></label><input type="number" data-list="moments" data-i="${i}" data-field="M" value="${m.M}"></div>
+        <div class="field"><label>x (m) <button type="button" class="help-btn" data-help="momentX">?</button></label><input type="number" data-list="moments" data-i="${i}" data-field="x" value="${m.x}"></div>
+      </div>
+    </div>`).join('') || '<div style="font-size:12px;color:#726F68;">Nenhum momento adicionado.</div>';
+}
+function renderDistList(){
+  const el = document.getElementById('distList');
+  el.innerHTML = state.distributed.map((d,i)=>`
+    <div class="item-card" data-i="${i}">
+      <button class="del" data-list="distributed" data-i="${i}">×</button>
+      <div class="row2">
+        <div class="field"><label>q inicial (N/m) <button type="button" class="help-btn" data-help="distQa">?</button></label><input type="number" data-list="distributed" data-i="${i}" data-field="qa" value="${d.qa}"></div>
+        <div class="field"><label>q final (N/m) <button type="button" class="help-btn" data-help="distQb">?</button></label><input type="number" data-list="distributed" data-i="${i}" data-field="qb" value="${d.qb}"></div>
+      </div>
+      <div class="field"><label>Sentido <button type="button" class="help-btn" data-help="distSentido">?</button></label>
+        <select data-list="distributed" data-i="${i}" data-field="sentido">
+          <option value="1" ${d.sentido===1?'selected':''}>Para baixo</option>
+          <option value="2" ${d.sentido===2?'selected':''}>Para cima</option>
+        </select>
+      </div>
+      <div class="row2">
+        <div class="field"><label>x inicial (m) <button type="button" class="help-btn" data-help="distXa">?</button></label><input type="number" data-list="distributed" data-i="${i}" data-field="xa" value="${d.xa}"></div>
+        <div class="field"><label>x final (m) <button type="button" class="help-btn" data-help="distXb">?</button></label><input type="number" data-list="distributed" data-i="${i}" data-field="xb" value="${d.xb}"></div>
+      </div>
+    </div>`).join('') || '<div style="font-size:12px;color:#726F68;">Nenhuma carga distribuída adicionada.</div>';
+}
+function renderAllLists(){ renderForcesList(); renderMomentsList(); renderDistList(); }
+
+document.body.addEventListener('input', e=>{
+  const t = e.target;
+  if(t.dataset.list && t.dataset.field !== undefined){
+    const arr = state[t.dataset.list];
+    const i = parseInt(t.dataset.i);
+    const field = t.dataset.field;
+    let val = t.tagName==='SELECT' ? parseInt(t.value) : parseFloat(t.value);
+    if(isNaN(val)) val = 0;
+    arr[i][field] = val;
+    update();
+  }
+});
+document.body.addEventListener('click', e=>{
+  const t = e.target;
+  if(t.classList.contains('help-btn')){ e.stopPropagation(); showHelp(t); return; }
+  if(!t.closest('#helpPopover')) hideHelp();
+  if(t.classList.contains('del') && t.dataset.list){
+    state[t.dataset.list].splice(parseInt(t.dataset.i),1);
+    renderAllLists();
+    update();
+  }
+});
+
+document.getElementById('addForce').onclick = ()=>{ const g=getGeometry(); state.forces.push({F:1000, angle:-90, x: g.Ltotal/2}); renderAllLists(); update(); };
+document.getElementById('addMoment').onclick = ()=>{ const g=getGeometry(); state.moments.push({M:500, x: g.Ltotal/2}); renderAllLists(); update(); };
+document.getElementById('addDist').onclick = ()=>{ const g=getGeometry(); state.distributed.push({qa:1000, qb:1000, sentido:1, xa:0, xb:g.Ltotal}); renderAllLists(); update(); };
+
+// =====================================================================
+// CAMPOS FIXOS
+// =====================================================================
+document.getElementById('sectionType').onchange = e=>{ state.sectionType=e.target.value; renderSectionFields(); update(); };
+document.getElementById('matE').oninput = e=>{ state.material.E=clampMin(parseFloat(e.target.value),1); update(); };
+document.getElementById('matE').onblur = e=>{ e.target.value = state.material.E; };
+document.getElementById('matV').oninput = e=>{ let v=parseFloat(e.target.value); if(isNaN(v)) v=0; v=Math.min(Math.max(v,-0.99),0.5); state.material.v=v; update(); };
+document.getElementById('matV').onblur = e=>{ e.target.value = state.material.v; };
+document.querySelectorAll('input[name=matClass]').forEach(r=> r.onchange = e=>{ state.material.cls=e.target.value; update(); });
+document.getElementById('ptX').oninput = e=>{ state.point.x=parseFloat(e.target.value)||0; update(); };
+document.getElementById('ptY').oninput = e=>{ state.point.y=parseFloat(e.target.value)||0; update(); };
+document.getElementById('ptTheta').oninput = e=>{ state.point.theta=parseFloat(e.target.value)||0; update(); };
+
+document.getElementById('btnExemplo').onclick = ()=>{
+  state.structure = { numSupports:2, engastePos:'esquerda', L1:4, tipoApoio1:'pino', tipoApoio2:'rolete', Lvao:4, Lbal1:1, Lbal2:0.5 };
+  state.sectionType='retangular'; state.section={b:0.10,h:0.20,d:0.15,A:0.02,I:6.667e-5,c:0.1};
+  state.material={E:200e9, v:0.3, cls:'ductil'};
+  state.forces=[{F:5000, angle:-90, x:3}];
+  state.moments=[]; state.distributed=[{qa:1000, qb:2000, sentido:1, xa:4, xb:5.5}];
+  state.point={x:3, y:0.05, theta:0};
+  document.getElementById('numApoios').value='2';
+  document.getElementById('sectionType').value='retangular';
+  document.getElementById('matE').value=200e9;
+  document.getElementById('matV').value=0.3;
+  document.querySelector('input[name=matClass][value=ductil]').checked=true;
+  document.getElementById('ptX').value=3;
+  document.getElementById('ptY').value=0.05;
+  document.getElementById('ptTheta').value=0;
+  renderApoiosFields(); renderSectionFields(); renderAllLists(); update();
+};
+document.getElementById('btnLimpar').onclick = ()=>{
+  if(!confirm('Tem certeza que deseja limpar tudo? Essa ação não pode ser desfeita.')) return;
+  state.structure = { numSupports:2, engastePos:'esquerda', L1:4, tipoApoio1:'pino', tipoApoio2:'rolete', Lvao:4, Lbal1:0, Lbal2:0 };
+  state.sectionType='retangular'; state.section={b:0.10,h:0.20,d:0.15,A:0.02,I:6.667e-5,c:0.1};
+  state.material={E:200e9, v:0.3, cls:'ductil'};
+  state.forces=[]; state.moments=[]; state.distributed=[];
+  state.point={x:2, y:0, theta:0};
+  document.getElementById('numApoios').value='2';
+  document.getElementById('sectionType').value='retangular';
+  document.getElementById('matE').value=200e9;
+  document.getElementById('matV').value=0.3;
+  document.querySelector('input[name=matClass][value=ductil]').checked=true;
+  document.getElementById('ptX').value=2;
+  document.getElementById('ptY').value=0;
+  document.getElementById('ptTheta').value=0;
+  renderApoiosFields(); renderSectionFields(); renderAllLists(); update();
+};
+document.getElementById('btnCSV').onclick = ()=>{
+  if(!lastResults) return;
+  const r = lastResults;
+  const nf = v => (v===null||v===undefined||!isFinite(v)) ? '' : v.toFixed(6);
+  // Usamos ; como separador (padrao do Excel em pt-BR, que usa , como separador decimal)
+  const lines = ['Categoria;Grandeza;Valor;Unidade'];
+  r.reactionForces.forEach((rf,i)=>{
+    const nm = i===0?'A':'B';
+    lines.push(`Reacoes;R${nm}x;${nf(rf.Fx)};N`);
+    lines.push(`Reacoes;R${nm}y;${nf(rf.Fy)};N`);
+  });
+  r.reactionMoments.forEach(m=> lines.push(`Reacoes;Momento de engaste;${nf(m.M)};N.m`));
+  lines.push(`Secao;A;${nf(r.sec.A)};m2`);
+  lines.push(`Secao;I;${nf(r.sec.I)};m4`);
+  lines.push(`Esforcos em x=${state.point.x};N(x);${nf(r.N)};N`);
+  lines.push(`Esforcos em x=${state.point.x};V(x);${nf(r.V)};N`);
+  lines.push(`Esforcos em x=${state.point.x};M(x);${nf(r.M)};N.m`);
+  lines.push(`Tensoes;sigma_x;${nf(r.sigma)};Pa`);
+  lines.push(`Tensoes;tau_xy;${nf(r.tau)};Pa`);
+  lines.push(`Tensoes principais;sigma_1;${nf(r.pr.s1)};Pa`);
+  lines.push(`Tensoes principais;sigma_2;${nf(r.pr.s2)};Pa`);
+  lines.push(`Tensoes principais;theta_p;${nf(r.pr.thetap)};graus`);
+  lines.push(`Deformacoes;eps_x;${nf(r.exy.ex)};-`);
+  lines.push(`Deformacoes;eps_y;${nf(r.exy.ey)};-`);
+  lines.push(`Deformacoes;gamma_xy;${nf(r.exy.gxy)};-`);
+  lines.push(`Deformacoes principais;eps_1;${nf(r.pe.e1)};-`);
+  lines.push(`Deformacoes principais;eps_2;${nf(r.pe.e2)};-`);
+  lines.push(`Deformacoes principais;theta_pe;${nf(r.pe.thetape)};graus`);
+  const blob = new Blob(['\uFEFF' + lines.join('\r\n')], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download='resultados_viga.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+document.getElementById('btnPrint').onclick = ()=>{ window.print(); };
+
+// =====================================================================
+// DESENHO: VIGA
+// =====================================================================
+const marginL=110, marginR=890, beamY=130;
+const yPointLabel = beamY+58;
+const ySegLine = beamY+84, ySegTick1=beamY+79, ySegTick2=beamY+89, ySegLabel=beamY+77;
+const yDimLine = beamY+104, yDimTick1=beamY+96, yDimTick2=beamY+112, yDimLabel=beamY+122;
+const yElBase = beamY+170, yElLabel = beamY+210;
+
+function distLabelText(d){
+  if(Math.abs(d.qa-d.qb) < 1e-9) return `q=${fmtUnit(d.qa,'N/m',2)}`;
+  return `q: ${fmtUnit(d.qa,'N/m',2)}\u2192${fmtUnit(d.qb,'N/m',2)}`;
+}
+function pxOf(x, Ltotal){ return marginL + (Ltotal>0 ? (x/Ltotal) : 0)*(marginR-marginL); }
+
+function supportIcon(type, xPix, side){
+  const g=[];
+  if(type==='pino'){
+    g.push(`<polygon points="${xPix-11},${beamY+23} ${xPix+11},${beamY+23} ${xPix},${beamY+7}" fill="none" stroke="#1C1B19" stroke-width="1.6"/>`);
+    g.push(hatch(xPix-14, xPix+14, beamY+23));
+  } else if(type==='rolete'){
+    g.push(`<polygon points="${xPix-11},${beamY+23} ${xPix+11},${beamY+23} ${xPix},${beamY+7}" fill="none" stroke="#1C1B19" stroke-width="1.6"/>`);
+    g.push(`<circle cx="${xPix-5}" cy="${beamY+28}" r="3.2" fill="none" stroke="#1C1B19" stroke-width="1.4"/>`);
+    g.push(`<circle cx="${xPix+5}" cy="${beamY+28}" r="3.2" fill="none" stroke="#1C1B19" stroke-width="1.4"/>`);
+    g.push(hatch(xPix-16, xPix+16, beamY+33));
+  } else { // engaste — hachura para FORA da parede
+    if(side==='esquerda'){
+      g.push(`<rect x="${xPix-10}" y="${beamY-40}" width="10" height="80" fill="none" stroke="#1C1B19" stroke-width="1.6"/>`);
+      g.push(hatchVert(xPix-10, beamY-40, beamY+40, 1));
+    } else {
+      g.push(`<rect x="${xPix}" y="${beamY-40}" width="10" height="80" fill="none" stroke="#1C1B19" stroke-width="1.6"/>`);
+      g.push(hatchVert(xPix+10, beamY-40, beamY+40, -1));
+    }
+  }
+  return g.join('');
+}
+function hatch(x1,x2,y){
+  let s = `<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="#1C1B19" stroke-width="1"/>`;
+  for(let x=x1; x<x2; x+=6){ s += `<line x1="${x}" y1="${y}" x2="${x-5}" y2="${y+8}" stroke="#1C1B19" stroke-width="1"/>`; }
+  return s;
+}
+function hatchVert(x,y1,y2,dir){
+  // dir=1 estende a hachura para a esquerda de x; dir=-1 estende para a direita de x
+  let s='';
+  for(let y=y1; y<y2; y+=8){ s += `<line x1="${x}" y1="${y}" x2="${x-8*dir}" y2="${y+7}" stroke="#1C1B19" stroke-width="1"/>`; }
+  return s;
+}
+function segLabel(x1,x2,label){
+  const mid=(x1+x2)/2;
+  return `<line x1="${x1}" y1="${ySegLine}" x2="${x2}" y2="${ySegLine}" stroke="#1C1B19" stroke-width="1"/>
+          <line x1="${x1}" y1="${ySegTick1}" x2="${x1}" y2="${ySegTick2}" stroke="#1C1B19" stroke-width="1"/>
+          <line x1="${x2}" y1="${ySegTick1}" x2="${x2}" y2="${ySegTick2}" stroke="#1C1B19" stroke-width="1"/>
+          <text x="${mid}" y="${ySegLabel}" fill="#1C1B19" font-family="IBM Plex Mono" font-size="9.5" text-anchor="middle">${label}</text>`;
+}
+
+function drawBeam(geom, defl, xsArr){
+  const g = [];
+  const Ltotal = geom.Ltotal;
+  const px = x => pxOf(x, Ltotal);
+  const xL = px(0), xR = px(Ltotal);
+
+  g.push(`<rect x="${xL}" y="${beamY-7}" width="${xR-xL}" height="14" fill="#E7E3DB" stroke="#1C1B19" stroke-width="1.2"/>`);
+
+  g.push(`<line x1="${xL}" y1="${yDimLine}" x2="${xR}" y2="${yDimLine}" stroke="#8C8880" stroke-width="1"/>`);
+  g.push(`<line x1="${xL}" y1="${yDimTick1}" x2="${xL}" y2="${yDimTick2}" stroke="#8C8880" stroke-width="1"/>`);
+  g.push(`<line x1="${xR}" y1="${yDimTick1}" x2="${xR}" y2="${yDimTick2}" stroke="#8C8880" stroke-width="1"/>`);
+  g.push(`<text x="${(xL+xR)/2}" y="${yDimLabel}" fill="#726F68" font-family="IBM Plex Mono" font-size="11" text-anchor="middle">comprimento total = ${fmt(Ltotal,2)} m</text>`);
+
+  if(geom.supports.length===2){
+    const xA = px(geom.supports[0].x), xB = px(geom.supports[1].x);
+    if(xA>xL+2) g.push(segLabel(xL,xA,'balanço 1'));
+    g.push(segLabel(xA,xB,'vão'));
+    if(xR>xB+2) g.push(segLabel(xB,xR,'balanço 2'));
+  }
+
+  geom.supports.forEach(sp=>{
+    const xp = px(sp.x);
+    const side = (state.structure.numSupports===1) ? state.structure.engastePos : 'esquerda';
+    g.push(supportIcon(sp.type, xp, side));
+  });
+
+  // ---- PASSO 1: coletar candidatos a rotulo por zona (acima/abaixo da viga) ----
+  const labelCandidates = { above: [], below: [] };
+  state.forces.forEach(f=>{
+    const p = px(f.x);
+    const dirx = cosd(f.angle);
+    const svgDirY = -sind(f.angle);
+    const zone = svgDirY < -0.0001 ? 'below' : 'above';
+    const tailX = p - dirx*52; // mesmo calculo do laco de desenho, abaixo
+    const labelX = tailX + 16;
+    const text = fmtUnit(f.F,'N',2);
+    const estWidth = text.length*6.3;
+    // texto de forca usa text-anchor=start (cresce para a direita) - o centro real fica deslocado
+    labelCandidates[zone].push({ x:labelX+estWidth/2, text, ref:f });
+  });
+  state.moments.forEach(m=>{
+    labelCandidates.above.push({ x:px(m.x), text:`M=${fmtUnit(m.M,'N·m',2)}`, ref:m });
+  });
+  state.distributed.forEach(d=>{
+    if(d.xb<=d.xa) return;
+    const mid = (px(d.xa)+px(d.xb))/2;
+    const zone = d.sentido===1 ? 'above' : 'below';
+    labelCandidates[zone].push({ x:mid, text:distLabelText(d), ref:d });
+  });
+  // ---- PASSO 2: atribuir raia (lane) evitando sobreposicao horizontal dentro de cada zona ----
+  function assignLanes(items){
+    const charW = 6.3; // largura media de caractere (fonte mono ~10.5px)
+    const sorted = [...items].sort((a,b)=>a.x-b.x);
+    const laneRight = [];
+    sorted.forEach(item=>{
+      const halfW = (item.text.length*charW)/2 + 8;
+      let lane = 0;
+      while(laneRight[lane] !== undefined && laneRight[lane] > item.x - halfW){ lane++; }
+      laneRight[lane] = item.x + halfW;
+      item.lane = lane;
+    });
+  }
+  assignLanes(labelCandidates.above);
+  assignLanes(labelCandidates.below);
+  const laneMap = new Map();
+  [...labelCandidates.above, ...labelCandidates.below].forEach(item=> laneMap.set(item.ref, item.lane));
+  const LANE_STEP = 15;
+  const LABEL_DIST = 55; // distancia fixa da viga para a raia 0, igual para forca/momento/distribuida (evita bases diferentes por tipo)
+  const aboveY = lane => beamY - LABEL_DIST - lane*LANE_STEP;
+  const belowY = lane => beamY + LABEL_DIST + lane*LANE_STEP;
+
+  state.forces.forEach(f=>{
+    const p = px(f.x);
+    const len = 52;
+    const dirx = cosd(f.angle);
+    const svgDirY = -sind(f.angle); // inverte: SVG cresce para baixo, ao contrario da convencao de engenharia
+    // a seta toca a face da viga do lado de onde ela vem (nunca atravessa a barra)
+    const headY = svgDirY < -0.0001 ? (beamY+10) : (beamY-10);
+    const tailX = p - dirx*len;
+    const tailY = headY - svgDirY*len;
+    g.push(`<line x1="${tailX}" y1="${tailY}" x2="${p}" y2="${headY}" stroke="#A6431C" stroke-width="1.8" marker-end="url(#arrowAmber)"/>`);
+    // rotulo em altura fixa e compartilhada entre tipos, deslocado lateralmente; empilha em raias se colidir
+    const lane = laneMap.get(f) || 0;
+    const labelX = tailX + 16;
+    const labelY = svgDirY < -0.0001 ? belowY(lane) : aboveY(lane);
+    g.push(`<text x="${labelX}" y="${labelY}" fill="#A6431C" font-family="IBM Plex Mono" font-size="10.5" text-anchor="start">${fmtUnit(f.F,'N',2)}</text>`);
+    g.push(`<line x1="${p}" y1="${beamY-28}" x2="${p}" y2="${beamY+28}" stroke="#A6431C" stroke-width="0.5" stroke-dasharray="2,3" opacity="0.3"/>`);
+  });
+
+  state.moments.forEach(m=>{
+    const p = px(m.x);
+    const cy = beamY - 34;
+    const sweep = m.M>=0 ? 1 : 0;
+    const lane = laneMap.get(m) || 0;
+    g.push(`<path d="M ${p-14},${cy} A 14,14 0 1,${sweep} ${p+14},${cy}" fill="none" stroke="#A6431C" stroke-width="2" marker-end="url(#arrowAmber)"/>`);
+    g.push(`<text x="${p}" y="${aboveY(lane)}" fill="#A6431C" font-family="IBM Plex Mono" font-size="11" text-anchor="middle">M=${fmtUnit(m.M,'N·m',2)}</text>`);
+  });
+
+  state.distributed.forEach(d=>{
+    if(d.xb<=d.xa) return;
+    const xa = px(d.xa), xb = px(d.xb);
+    const down = d.sentido===1;
+    const lane = laneMap.get(d) || 0;
+    const maxQ = Math.max(Math.abs(d.qa), Math.abs(d.qb)) || 1;
+    const baseY = beamY - (down?10:-10);
+    const peak = 30; // altura maxima da rampa, em pixels
+    const heightAt = q => 6 + peak*(Math.abs(q)/maxQ); // altura minima de 6px, mesmo se q=0 (triangular)
+    const yTopAt = q => baseY - (down?1:-1)*heightAt(q);
+    const yTopA = yTopAt(d.qa), yTopB = yTopAt(d.qb);
+    g.push(`<line x1="${xa}" y1="${yTopA}" x2="${xb}" y2="${yTopB}" stroke="#A6431C" stroke-width="1.2"/>`);
+    const n = Math.max(3, Math.round((xb-xa)/28));
+    for(let k=0;k<=n;k++){
+      const t = k/n;
+      const xx = xa + (xb-xa)*t;
+      const qLocal = d.qa + (d.qb-d.qa)*t;
+      const y1 = yTopAt(qLocal), y2 = baseY;
+      g.push(`<line x1="${xx}" y1="${y1}" x2="${xx}" y2="${y2}" stroke="#A6431C" stroke-width="1.3" marker-end="url(#arrowAmber)"/>`);
+    }
+    const distLabelY = down ? aboveY(lane) : belowY(lane);
+    g.push(`<text x="${(xa+xb)/2}" y="${distLabelY}" fill="#A6431C" font-family="IBM Plex Mono" font-size="10.5" text-anchor="middle">${distLabelText(d)}</text>`);
+  });
+
+  const px0 = px(state.point.x);
+  g.push(`<line x1="${px0}" y1="${beamY-45}" x2="${px0}" y2="${beamY+45}" stroke="#1C1B19" stroke-width="1" stroke-dasharray="4,3"/>`);
+  g.push(`<circle cx="${px0}" cy="${beamY}" r="4" fill="#1C1B19"/>`);
+  g.push(`<text x="${px0}" y="${yPointLabel}" fill="#1C1B19" font-family="IBM Plex Mono" font-size="11" text-anchor="middle">x = ${fmt(state.point.x,2)} m</text>`);
+
+  // linha elastica (deformada), escala exagerada
+  const maxAbsV = Math.max(1e-9, ...defl.map(v=>Math.abs(v)));
+  const amp = 25;
+  const scale = amp/maxAbsV;
+  const factor = scale; // pixels por metro de deflexao
+  let path = 'M ' + xsArr.map((x,i)=> `${px(x).toFixed(1)},${(yElBase - defl[i]*scale).toFixed(1)}`).join(' L ');
+  g.push(`<line x1="${xL}" y1="${yElBase}" x2="${xR}" y2="${yElBase}" stroke="#8C8880" stroke-width="1" stroke-dasharray="2,3"/>`);
+  g.push(`<path d="${path}" fill="none" stroke="#1C1B19" stroke-width="1.8"/>`);
+  g.push(`<text x="${(xL+xR)/2}" y="${yElLabel}" fill="#1C1B19" font-family="IBM Plex Mono" font-size="10.5" text-anchor="middle">linha elástica (escala ampliada ~${fmt(factor,0)}x) · v_máx = ${fmtUnit(maxAbsV,'m')}</text>`);
+
+  document.getElementById('beamContent').innerHTML = g.join('');
+}
+
+// =====================================================================
+// DIAGRAMAS
+// =====================================================================
+function drawDiagram(containerId, values, color, xs, xMark, Ltotal, unit){
+  const w=300,h=130, padL=30,padR=10,padT=10,padB=20;
+  const maxAbs = Math.max(1e-9, ...values.map(v=>Math.abs(v)));
+  const x0=padL, x1=w-padR, midY = padT + (h-padT-padB)/2;
+  const sxFn = i => x0 + (values.length>1 ? (i/(values.length-1))*(x1-x0) : 0);
+  const syFn = v => midY - (v/maxAbs)*((h-padT-padB)/2 - 4);
+  let path = 'M ' + values.map((v,i)=> `${sxFn(i).toFixed(1)},${syFn(v).toFixed(1)}`).join(' L ');
+  let area = `M ${sxFn(0).toFixed(1)},${midY.toFixed(1)} L ` + values.map((v,i)=> `${sxFn(i).toFixed(1)},${syFn(v).toFixed(1)}`).join(' L ') + ` L ${sxFn(values.length-1).toFixed(1)},${midY.toFixed(1)} Z`;
+  const g = [];
+  g.push(`<line x1="${x0}" y1="${midY}" x2="${x1}" y2="${midY}" stroke="#DAD5CB" stroke-width="1"/>`);
+  g.push(`<path d="${area}" fill="${color}" opacity="0.18"/>`);
+  g.push(`<path d="${path}" fill="none" stroke="${color}" stroke-width="1.8"/>`);
+  if(Ltotal>0){
+    const xmPix = x0 + Math.min(Math.max(xMark/Ltotal,0),1)*(x1-x0);
+    g.push(`<line x1="${xmPix.toFixed(1)}" y1="${padT}" x2="${xmPix.toFixed(1)}" y2="${h-padB}" stroke="#1C1B19" stroke-width="1" stroke-dasharray="3,3" opacity="0.7"/>`);
+  }
+  g.push(`<text x="2" y="${padT+4}" fill="#726F68" font-family="IBM Plex Mono" font-size="9">${fmtUnit(Math.max(...values),unit,2)}</text>`);
+  g.push(`<text x="2" y="${h-4}" fill="#726F68" font-family="IBM Plex Mono" font-size="9">${fmtUnit(Math.min(...values),unit,2)}</text>`);
+  document.getElementById(containerId).innerHTML = g.join('');
+}
+
+// =====================================================================
+// MOHR
+// =====================================================================
+function drawMohr(sx,sy,txy,s1,s2){
+  const w=260,h=220, cx=130, cy=110;
+  const med=(sx+sy)/2, R=Math.sqrt(Math.pow((sx-sy)/2,2)+txy*txy);
+  const maxAbs = Math.max(Math.abs(s1),Math.abs(s2),R,1e-9)*1.35;
+  const scale = 85/maxAbs;
+  const cxp = cx + med*scale;
+  const g=[];
+  g.push(`<line x1="10" y1="${cy}" x2="${w-10}" y2="${cy}" stroke="#DAD5CB" stroke-width="1"/>`);
+  g.push(`<line x1="${cx}" y1="10" x2="${cx}" y2="${h-10}" stroke="#DAD5CB" stroke-width="1"/>`);
+  g.push(`<text x="${w-14}" y="${cy-6}" fill="#726F68" font-family="IBM Plex Mono" font-size="9">σ</text>`);
+  g.push(`<text x="${cx+6}" y="18" fill="#726F68" font-family="IBM Plex Mono" font-size="9">τ</text>`);
+  g.push(`<circle cx="${cxp}" cy="${cy}" r="${R*scale}" fill="none" stroke="#1C1B19" stroke-width="1.6"/>`);
+  const p1x = cx + sx*scale, p1y = cy - (-txy)*scale;
+  const p2x = cx + sy*scale, p2y = cy - (txy)*scale;
+  g.push(`<line x1="${p1x}" y1="${p1y}" x2="${p2x}" y2="${p2y}" stroke="#1C1B19" stroke-width="1"/>`);
+  g.push(`<circle cx="${p1x}" cy="${p1y}" r="3" fill="#A6431C"/>`);
+  g.push(`<text x="${p1x+5}" y="${p1y-5}" fill="#A6431C" font-family="IBM Plex Mono" font-size="9">(σx,τxy)</text>`);
+  g.push(`<circle cx="${p2x}" cy="${p2y}" r="3" fill="#1C1B19"/>`);
+  g.push(`<text x="${p2x+5}" y="${p2y+12}" fill="#1C1B19" font-family="IBM Plex Mono" font-size="9">(σy,-τxy)</text>`);
+  const s1x = cx + s1*scale, s2x = cx + s2*scale;
+  g.push(`<circle cx="${s1x}" cy="${cy}" r="3" fill="#1C1B19"/>`);
+  g.push(`<text x="${s1x}" y="${cy+16}" fill="#1C1B19" font-family="IBM Plex Mono" font-size="9" text-anchor="middle">σ1</text>`);
+  g.push(`<circle cx="${s2x}" cy="${cy}" r="3" fill="#1C1B19"/>`);
+  g.push(`<text x="${s2x}" y="${cy+16}" fill="#1C1B19" font-family="IBM Plex Mono" font-size="9" text-anchor="middle">σ2</text>`);
+  document.getElementById('mohrContent').innerHTML = g.join('');
+}
+
+// =====================================================================
+// MEMORIA DE CALCULO (passo a passo didatico)
+// =====================================================================
+function sh(n,title){ return `<div class="calc-step-title">${n}. ${title}</div>`; }
+function cb(desc, formula, sub, result){
+  return `<div class="calc-block">
+    <div class="calc-desc">${desc}</div>
+    <div class="calc-formula">${formula}</div>
+    ${sub? `<div class="calc-sub">${sub}</div>` : ''}
+    ${result? `<div class="calc-result">→ ${result}</div>` : ''}
+  </div>`;
+}
+function buildMemoria(geom, reactionForces, reactionMoments, sec, N, V, M, sigma, tau, tr, pr, exy, pe, qb){
+  const parts = [];
+
+  // ---------- 1. Secao ----------
+  let secForm='', secSub='';
+  if(state.sectionType==='retangular'){
+    secForm = 'A = b·h &nbsp;&nbsp; I = b·h³/12';
+    secSub = `A = ${fmt(state.section.b,3)}×${fmt(state.section.h,3)} &nbsp;&nbsp; I = ${fmt(state.section.b,3)}×${fmt(state.section.h,3)}³/12`;
+  } else if(state.sectionType==='circular'){
+    secForm = 'A = π·r² &nbsp;&nbsp; I = π·r⁴/4 &nbsp; (r = d/2)';
+    secSub = `r = ${fmt(state.section.d,3)}/2 = ${fmt(state.section.d/2,4)}`;
+  } else {
+    secForm = 'A, I e c informados diretamente pelo usuário.';
+    secSub = '';
+  }
+  parts.push(sh(1,'Propriedades da seção transversal'));
+  parts.push(cb('Área e momento de inércia:', secForm, secSub, `A = ${fmtUnit(sec.A,'m²')} &nbsp;&nbsp; I = ${fmtUnit(sec.I,'m⁴')} &nbsp;&nbsp; c = ${fmtUnit(sec.c,'m')}`));
+
+  // ---------- 2. Reacoes ----------
+  parts.push(sh(2,'Reações de apoio (equilíbrio estático)'));
+  const xAcommon = geom.supports[0].x;
+  const forceLinesM = state.forces.map(f=>{
+    const Fy = f.F*sind(f.angle);
+    const contrib = Fy*(f.x-xAcommon);
+    return `F=${fmt(f.F,0)} N em x=${fmt(f.x,2)}: Fy·(x−x_A) = ${fmt(Fy,2)}×(${fmt(f.x,2)}−${fmt(xAcommon,2)}) = ${fmt(contrib,2)} N·m`;
+  });
+  const momLines = state.moments.map(m=> `M=${fmt(m.M,2)} N·m em x=${fmt(m.x,2)} (soma direto, independe da distância) = ${fmt(m.M,2)} N·m`);
+  const distLinesM = state.distributed.filter(d=>d.xb>d.xa).map(d=>{
+    const qya = d.sentido===1?-d.qa:d.qa, qyb = d.sentido===1?-d.qb:d.qb;
+    const L = d.xb-d.xa;
+    const {A, xc:xcOff} = trapLoad(qya, qyb, L);
+    const xc = d.xa+xcOff;
+    const contrib = A*(xc-xAcommon);
+    const tipo = Math.abs(d.qa-d.qb)<1e-9 ? 'uniforme' : 'trapezoidal';
+    return `q (${tipo}) de ${fmt(d.qa,0)} a ${fmt(d.qb,0)} N/m, x=${fmt(d.xa,2)} a ${fmt(d.xb,2)}: resultante=(qa+qb)/2·L=${fmt(A,2)} N, centroide em x=${fmt(xc,2)} m → resultante·(xc−x_A) = ${fmt(A,2)}×(${fmt(xc,2)}−${fmt(xAcommon,2)}) = ${fmt(contrib,2)} N·m`;
+  });
+  const itemLines = [...forceLinesM, ...momLines, ...distLinesM];
+
+  if(geom.supports.length===1){
+    const xA = geom.supports[0].x;
+    parts.push(cb(
+      `Apoio único (engaste) em x_A = ${fmt(xA,2)} m. Equilíbrio de momentos em torno de A:`,
+      'ΣM_A = 0 → M_A = −[ Σ Fyᵢ·(xᵢ−x_A) + ΣMᵢ + Σ qyⱼ·compⱼ·(xcⱼ−x_A) ]',
+      itemLines.length? itemLines.join('<br>') : '(sem cargas aplicadas)',
+      `M_A = ${fmtUnit(reactionMoments[0].M,'N·m')}`
+    ));
+    parts.push(cb(
+      'Equilíbrio de forças verticais e horizontais:',
+      'ΣFy = 0 → RAy = −ΣFyᵢ &nbsp;&nbsp;&nbsp; ΣFx = 0 → RAx = −ΣFxᵢ',
+      '',
+      `RAy = ${fmtUnit(reactionForces[0].Fy,'N')} &nbsp;&nbsp; RAx = ${fmtUnit(reactionForces[0].Fx,'N')}`
+    ));
+  } else {
+    const xA = geom.supports[0].x, xB = geom.supports[1].x;
+    parts.push(cb(
+      `Apoio 1 (${geom.supports[0].type}) em x_A=${fmt(xA,2)} m, Apoio 2 (${geom.supports[1].type}) em x_B=${fmt(xB,2)} m. Momentos em torno de A:`,
+      'ΣM_A = 0 → RBy = −[ Σ Fyᵢ·(xᵢ−x_A) + ΣMᵢ + Σ qyⱼ·compⱼ·(xcⱼ−x_A) ] / (x_B−x_A)',
+      itemLines.length? itemLines.join('<br>') : '(sem cargas aplicadas)',
+      `RBy = ${fmtUnit(reactionForces[1].Fy,'N')}`
+    ));
+    parts.push(cb(
+      'Equilíbrio vertical (ΣFy=0) para achar RAy, e horizontal (ΣFx=0) para o apoio do tipo Pino:',
+      'RAy = −ΣFyᵢ − RBy &nbsp;&nbsp;&nbsp; R(pino)x = −ΣFxᵢ',
+      '',
+      `RAy = ${fmtUnit(reactionForces[0].Fy,'N')} &nbsp;&nbsp; RAx = ${fmtUnit(reactionForces[0].Fx,'N')} &nbsp;&nbsp; RBx = ${fmtUnit(reactionForces[1].Fx,'N')}`
+    ));
+  }
+
+  // ---------- 3. Esforcos internos ----------
+  parts.push(sh(3,`Esforços internos em x = ${fmt(state.point.x,2)} m (método das seções)`));
+  parts.push(cb(
+    'Soma de tudo que está à esquerda do corte (reações + cargas com posição ≤ x):',
+    'N(x) = ΣFxᵢ &nbsp;&nbsp; V(x) = ΣFyᵢ &nbsp;&nbsp; M(x) = ΣFyᵢ·(x−xᵢ) + ΣMᵢ',
+    `Elementos à esquerda de x=${fmt(state.point.x,2)} m considerados na soma (reações inclusas).`,
+    `N = ${fmtUnit(N,'N')} &nbsp;&nbsp; V = ${fmtUnit(V,'N')} &nbsp;&nbsp; M = ${fmtUnit(M,'N·m')}`
+  ));
+
+  // ---------- 4. Tensoes ----------
+  parts.push(sh(4,`Tensões no ponto (x=${fmt(state.point.x,2)}, y=${fmt(state.point.y,3)} m)`));
+  parts.push(cb(
+    'Tensão normal (esforço axial + flexão):',
+    'σx = N/A − M·y/I',
+    `σx = ${fmtUnit(N,'N')}/${fmtUnit(sec.A,'m²')} − ${fmtUnit(M,'N·m')}×${fmt(state.point.y,3)}/${fmtUnit(sec.I,'m⁴')}`,
+    `σx = ${fmtUnit(sigma,'Pa')}`
+  ));
+  if(qb && qb.b>0 && state.sectionType!=='manual'){
+    parts.push(cb(
+      'Tensão de cisalhamento (usa o primeiro momento de área Q na altura y):',
+      'τxy = V·Q(y) / (I·b)',
+      `Q(y=${fmt(state.point.y,3)}) = ${fmt(qb.Q,7)} m³ &nbsp;&nbsp; τxy = ${fmtUnit(V,'N')}×${fmt(qb.Q,7)} / (${fmtUnit(sec.I,'m⁴')}×${fmt(qb.b,3)})`,
+      `τxy = ${fmtUnit(tau,'Pa')}`
+    ));
+  } else {
+    parts.push(cb('Tensão de cisalhamento (seção manual → aproximação pela média):', 'τxy ≈ V/A', `τxy = ${fmtUnit(V,'N')}/${fmtUnit(sec.A,'m²')}`, `τxy = ${fmtUnit(tau,'Pa')}`));
+  }
+
+  // ---------- 5. Transformacao ----------
+  parts.push(sh(5,`Tensão transformada na direção θ = ${fmt(state.point.theta,0)}°`));
+  parts.push(cb(
+    'Equações de transformação de tensão plana:',
+    "σx' = (σx+σy)/2 + (σx−σy)/2·cos(2θ) + τxy·sin(2θ)",
+    `σx' = (${fmtUnit(sigma,'Pa')}+0)/2 + (${fmtUnit(sigma,'Pa')}−0)/2×cos(${fmt(2*state.point.theta,0)}°) + ${fmtUnit(tau,'Pa')}×sin(${fmt(2*state.point.theta,0)}°)`,
+    `σx' = ${fmtUnit(tr.sx2,'Pa')} &nbsp;&nbsp; τx'y' = ${fmtUnit(tr.txy2,'Pa')}`
+  ));
+
+  // ---------- 6. Principais tensao ----------
+  parts.push(sh(6,'Tensões principais (círculo de Mohr)'));
+  parts.push(cb(
+    'Centro e raio do círculo de Mohr:',
+    'σ_méd = (σx+σy)/2 &nbsp;&nbsp; R = √[ ((σx−σy)/2)² + τxy² ]',
+    `σ_méd = ${fmtUnit(sigma,'Pa')}/2 &nbsp;&nbsp; R = √[ (${fmtUnit(sigma,'Pa')}/2)² + (${fmtUnit(tau,'Pa')})² ]`,
+    `σ1 = σ_méd+R = ${fmtUnit(pr.s1,'Pa')} &nbsp;&nbsp; σ2 = σ_méd−R = ${fmtUnit(pr.s2,'Pa')} &nbsp;&nbsp; θp = ${fmt(pr.thetap,2)}°`
+  ));
+
+  // ---------- 7. Deformacoes ----------
+  parts.push(sh(7,'Deformações (Lei de Hooke, estado plano de tensão)'));
+  parts.push(cb(
+    'G é calculado a partir de E e do coeficiente de Poisson:',
+    'G = E / [2·(1+ν)]',
+    `G = ${fmtUnit(state.material.E,'Pa')} / [2×(1+${fmt(state.material.v,3)})]`,
+    `G = ${fmtUnit(state.material.E/(2*(1+state.material.v)),'Pa')}`
+  ));
+  parts.push(cb(
+    'Deformações a partir das tensões:',
+    'εx = (σx − ν·σy)/E &nbsp;&nbsp; γxy = τxy/G',
+    `εx = ${fmtUnit(sigma,'Pa')}/${fmtUnit(state.material.E,'Pa')} &nbsp;&nbsp; γxy = ${fmtUnit(tau,'Pa')}/${fmtUnit(state.material.E/(2*(1+state.material.v)),'Pa')}`,
+    `εx = ${fmt(exy.ex,6)} &nbsp;&nbsp; εy = ${fmt(exy.ey,6)} &nbsp;&nbsp; γxy = ${fmt(exy.gxy,6)}`
+  ));
+
+  // ---------- 8. Principais deformacao ----------
+  parts.push(sh(8,'Deformações principais'));
+  parts.push(cb(
+    'Mesmo princípio do círculo de Mohr, usando γ/2 no lugar de τ:',
+    'ε_méd = (εx+εy)/2 &nbsp;&nbsp; R = √[ ((εx−εy)/2)² + (γxy/2)² ]',
+    '',
+    `ε1 = ${fmt(pe.e1,6)} &nbsp;&nbsp; ε2 = ${fmt(pe.e2,6)} &nbsp;&nbsp; θp = ${fmt(pe.thetape,2)}°`
+  ));
+
+  // ---------- 9. Linha elastica ----------
+  parts.push(sh(9,'Linha elástica (deformada)'));
+  parts.push(cb(
+    'Curvatura vem do momento fletor; a deflexão é obtida por dupla integração numérica, com as condições de contorno de cada apoio (deslocamento zero nos apoios, e rotação zero também no caso de engaste):',
+    'κ(x) = M(x)/(E·I) &nbsp;&nbsp; θ(x) = ∫κ dx &nbsp;&nbsp; v(x) = ∫θ dx',
+    '',
+    'Resultado mostrado no gráfico "Linha elástica v(x)" e sobreposto no desenho da viga (em escala ampliada).'
+  ));
+
+  document.getElementById('calcMemoria').innerHTML = parts.join('');
+}
+
+// =====================================================================
+// =====================================================================
+// RESULTADOS
+// =====================================================================
+function kv(k,v,cls='v'){ return `<div class="kv"><span class="k">${k}</span><span class="${cls}">${v}</span></div>`; }
+
+function updateInner(){
+  const geom = getGeometry();
+  const { reactionForces, reactionMoments, warning } = computeReactions(geom);
+  const sec = sectionProps();
+
+  // validacoes / avisos
+  const warnings = [];
+  if(warning) warnings.push(warning);
+  if(state.point.x<0 || state.point.x>geom.Ltotal) warnings.push(`O ponto x = ${fmt(state.point.x,2)} m está fora da viga (intervalo válido: 0 a ${fmt(geom.Ltotal,2)} m).`);
+  if(Math.abs(state.point.y) > sec.c + 1e-9) warnings.push(`O ponto y = ${fmt(state.point.y,3)} m está fora da seção transversal (intervalo válido: entre -${fmt(sec.c,3)} e +${fmt(sec.c,3)} m).`);
+  state.distributed.forEach((d,i)=>{ if(d.xb<=d.xa) warnings.push(`Carga distribuída #${i+1}: a posição inicial deve ser menor que a final (essa carga está sendo ignorada nos cálculos).`); });
+  if(geom.Ltotal > 1000) warnings.push(`Comprimento total de ${fmt(geom.Ltotal,1)} m é incomum para uma viga — confira se não houve engano de digitação.`);
+  if(state.material.E > 1e13 || state.material.E < 1e6) warnings.push(`Módulo de elasticidade (${fmtUnit(state.material.E,'Pa')}) está fora da faixa típica de materiais de engenharia (aço ≈ 200 GPa) — confira a unidade.`);
+  const warnPanel = document.getElementById('warningsPanel');
+  if(warnings.length){ warnPanel.innerHTML = warnings.map(w=>`<div class="warning-item"><strong>Atenção:</strong> ${w}</div>`).join(''); warnPanel.classList.add('show'); }
+  else { warnPanel.innerHTML=''; warnPanel.classList.remove('show'); }
+
+  // reacoes
+  let reacHtml = '<h3>Reações de apoio</h3>';
+  reactionForces.forEach((r,i)=>{
+    const nm = i===0?'A':'B';
+    reacHtml += kv(`R${nm}x`, fmtUnit(r.Fx,'N'));
+    reacHtml += kv(`R${nm}y`, fmtUnit(r.Fy,'N'));
+  });
+  reactionMoments.forEach(m=>{ reacHtml += kv('Momento de engaste', fmtUnit(m.M,'N·m')); });
+  reacHtml += kv('Área A (m²)', fmt(sec.A,5), 'v blue');
+  reacHtml += kv('Inércia I (m⁴)', fmt(sec.I,7), 'v blue');
+  document.getElementById('reactionsCard').innerHTML = reacHtml;
+
+  // esforcos e tensoes no ponto
+  const {N,V,M} = internalForces(state.point.x, reactionForces, reactionMoments);
+  let sigma = N/sec.A - M*state.point.y/sec.I;
+  let tau;
+  const qb = QandB(state.point.y);
+  if(state.sectionType==='manual' || !qb || qb.b===0){ tau = V/sec.A; }
+  else { tau = V*qb.Q/(sec.I*qb.b); }
+
+  let intHtml = '<h3>No ponto x — esforços e tensões</h3>';
+  intHtml += kv('N(x)', fmtUnit(N,'N'));
+  intHtml += kv('V(x)', fmtUnit(V,'N'));
+  intHtml += kv('M(x)', fmtUnit(M,'N·m'));
+  intHtml += kv('σx', fmtUnit(sigma,'Pa'), 'v blue');
+  intHtml += kv('τxy', fmtUnit(tau,'Pa'), 'v blue');
+  const tr = transformStress(sigma,0,tau,state.point.theta);
+  intHtml += kv(`σx' @ ${fmt(state.point.theta,0)}°`, fmtUnit(tr.sx2,'Pa'), 'v green');
+  intHtml += kv(`τx'y' @ ${fmt(state.point.theta,0)}°`, fmtUnit(tr.txy2,'Pa'), 'v green');
+  document.getElementById('internalCard').innerHTML = intHtml;
+
+  const pr = principalStress(sigma,0,tau);
+  drawMohr(sigma,0,tau,pr.s1,pr.s2);
+
+  const exy = strains(sigma,0,tau,state.material.E,state.material.v);
+  const pe = principalStrain(exy.ex,exy.ey,exy.gxy);
+  let strHtml = '<h3>Deformações e principais</h3>';
+  strHtml += kv('εx', fmt(exy.ex,6));
+  strHtml += kv('εy', fmt(exy.ey,6));
+  strHtml += kv('γxy', fmt(exy.gxy,6));
+  strHtml += kv('σ1', fmtUnit(pr.s1,'Pa'), 'v amber');
+  strHtml += kv('σ2', fmtUnit(pr.s2,'Pa'), 'v amber');
+  strHtml += kv('θp (tensão) [°]', fmt(pr.thetap,2), 'v amber');
+  strHtml += kv('ε1', fmt(pe.e1,6), 'v green');
+  strHtml += kv('ε2', fmt(pe.e2,6), 'v green');
+  strHtml += kv('θp (deform.) [°]', fmt(pe.thetape,2), 'v green');
+  strHtml += kv('Material', state.material.cls==='ductil'?'Dúctil':'Frágil');
+  document.getElementById('strainCard').innerHTML = strHtml;
+
+  // amostragem para diagramas e linha elastica
+  const n = 80;
+  const xsArr = Array.from({length:n}, (_,i)=> geom.Ltotal*i/(n-1));
+  const Ns=[], Vs=[], Ms=[];
+  xsArr.forEach(xx=>{ const r = internalForces(xx, reactionForces, reactionMoments); Ns.push(r.N); Vs.push(r.V); Ms.push(r.M); });
+  const defl = computeDeflection(geom, xsArr, Ms, sec);
+
+  drawDiagram('diagNContent', Ns, '#1C1B19', xsArr, state.point.x, geom.Ltotal, 'N');
+  drawDiagram('diagVContent', Vs, '#1C1B19', xsArr, state.point.x, geom.Ltotal, 'N');
+  drawDiagram('diagMContent', Ms, '#1C1B19', xsArr, state.point.x, geom.Ltotal, 'N·m');
+  drawDiagram('diagDeflContent', defl, '#1C1B19', xsArr, state.point.x, geom.Ltotal, 'm');
+
+  drawBeam(geom, defl, xsArr);
+
+  lastResults = { geom, reactionForces, reactionMoments, sec, N, V, M, sigma, tau, pr, exy, pe };
+  buildMemoria(geom, reactionForces, reactionMoments, sec, N, V, M, sigma, tau, tr, pr, exy, pe, qb);
+
+  saveStateToStorage();
+}
+
+// Wrapper com protecao: se algo inesperado der errado durante o calculo, mostra aviso
+// em vez de travar a pagina em silencio.
+function update(){
+  try{
+    updateInner();
+  } catch(e){
+    console.error('Erro ao atualizar calculos:', e);
+    const warnPanel = document.getElementById('warningsPanel');
+    warnPanel.innerHTML = `<div class="warning-item"><strong>Ocorreu um erro inesperado</strong> ao calcular com os valores atuais. Tente ajustar os campos recentes ou clique em "Limpar tudo" para reiniciar. (Detalhe técnico: ${e.message})</div>`;
+    warnPanel.classList.add('show');
+  }
+}
+
+// ---- Salvamento automático (localStorage do navegador) ----
+const STORAGE_KEY = 'analise_vigas_estado_v1';
+function saveStateToStorage(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){ /* modo privado ou indisponivel: ignora silenciosamente */ }
+}
+function loadStateFromStorage(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return false;
+    const saved = JSON.parse(raw);
+    if(!saved || typeof saved !== 'object') return false;
+    Object.assign(state.structure, saved.structure||{});
+    Object.assign(state.section, saved.section||{});
+    Object.assign(state.material, saved.material||{});
+    Object.assign(state.point, saved.point||{});
+    state.sectionType = saved.sectionType || state.sectionType;
+    state.forces = Array.isArray(saved.forces) ? saved.forces : state.forces;
+    state.moments = Array.isArray(saved.moments) ? saved.moments : state.moments;
+    state.distributed = Array.isArray(saved.distributed) ? saved.distributed : state.distributed;
+    return true;
+  } catch(e){ return false; }
+}
+function syncFixedFieldsFromState(){
+  document.getElementById('numApoios').value = state.structure.numSupports;
+  document.getElementById('sectionType').value = state.sectionType;
+  document.getElementById('matE').value = state.material.E;
+  document.getElementById('matV').value = state.material.v;
+  const radio = document.querySelector(`input[name=matClass][value=${state.material.cls}]`);
+  if(radio) radio.checked = true;
+  document.getElementById('ptX').value = state.point.x;
+  document.getElementById('ptY').value = state.point.y;
+  document.getElementById('ptTheta').value = state.point.theta;
+}
+
+// =====================================================================
+// INICIALIZACAO
+// =====================================================================
+const restaurou = loadStateFromStorage();
+if(restaurou) syncFixedFieldsFromState();
+renderApoiosFields();
+renderSectionFields();
+renderAllLists();
+update();
+if(restaurou){
+  const notice = document.createElement('div');
+  notice.textContent = 'Sessão anterior restaurada automaticamente.';
+  notice.style.cssText = 'position:fixed;bottom:16px;right:16px;background:#1C1B19;color:#F5F3EE;padding:9px 16px;font-family:IBM Plex Sans,sans-serif;font-size:12.5px;z-index:1000;box-shadow:0 4px 14px rgba(0,0,0,.25);';
+  document.body.appendChild(notice);
+  setTimeout(()=>{ notice.style.transition='opacity .6s ease'; notice.style.opacity='0'; setTimeout(()=>notice.remove(),600); }, 3500);
+}
+</script>
+</body>
+</html>
